@@ -1,10 +1,8 @@
 ﻿using NeuralNetwork.Classes;
-using NeuralNetwork.NMIST;
 using NeuralNetwork.Tools;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
-using System.Drawing;
-using System.Drawing.Drawing2D;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -17,31 +15,49 @@ namespace NeuralNetwork
         static void Main(string[] args)
         {
             //var testSet = NMIST_Loader.GetDataSet("test-images.data", "test-labels.data", 10000);
-            //NMIST_Loader.SaveImageTosDisk(testSet, @"C:\Users\Neil\Desktop\My Repos\NN_1\TestImages\");
+            //NMIST_Loader.SaveImageTosDisk(testSet, @"C:\Other_Repos\Test Images\");
             //return;
 
+            //var nn = new Network(3, new int[] { 2, 3 }, 3, 0.4, 0.2);
+            //File.WriteAllText("output.json", nn.Serialize(true));
+
+            var dsl = new DataSets.NMIST_Loader();
+
             Console.WriteLine("Loading Training Data...");
+            var trainingSet = dsl.GetDataSet("train-images.data", "train-labels.data", 60000);
+
+            Console.WriteLine("Loading Test Data...");
+            var testSet = dsl.GetDataSet("test-images.data", "test-labels.data", 10000);
+
+            // Use this to load a saved network from JSON
+            //var nn = Network.FromJson(File.ReadAllText("Network 2019-10-02.json"));
+
+            // Use this to create a new network from scratch
+            var nn = new Network(784, new int[] { 400, 280 }, 10, 0.28, 0.4);
             
-            var trainingSet = NMIST_Loader.GetDataSet("train-images.data", "train-labels.data", 60000);
-
-            var nn = new Network(784, new int[] { 422, 280 }, 10, 0.3, 0.49);
-
             Console.WriteLine(nn.Config);
 
-            var testSet = NMIST_Loader.GetDataSet("test-images.data", "test-labels.data", 10000);
-
-            Console.WriteLine("Starting Failure Rate: " + nn.Fitness_FailureRate(testSet).ToString("0.000000"));
-
+            //nn.Fitness_FailureRate(testSet);
+            
             nn.Train(trainingSet, testSet, 40);
             
-
             Console.WriteLine(nn.Config);
             Console.Beep(555, 620);
 
-           
-            Console.ReadLine();
+            Console.WriteLine("Save this Network? Y/N");
 
-            Console.ReadLine();
+            var save = Console.ReadLine();
+            if (save.ToUpperInvariant() == "Y")
+            {
+                var fileName = DateTime.Now.ToString("yyyy-MM-dd_HHmmss") + ".json";
+                Console.WriteLine("Saving " + fileName + "...");
+                File.WriteAllText("Network " + fileName, nn.Serialize());
+                Console.WriteLine("Saved.");
+            }
+
+            Console.WriteLine("Press any key to exit");
+
+            Console.ReadKey();
         }
     }
 }

@@ -10,11 +10,11 @@ using System.Drawing.Imaging;
 using System.Drawing;
 using System.Security.Cryptography;
 
-namespace NeuralNetwork.NMIST
+namespace NeuralNetwork.DataSets
 {
-    public class NMIST_Loader
+    public class NMIST_Loader : IDataLoader
     {
-        public static List<DataSet> GetDataSet(string imageFilePath, string labelFilePath, int count)
+        public IList<DataSet> GetDataSet(string imageFilePath, string labelFilePath, int count)
         {
             var dataSets = new List<DataSet>(count);
 
@@ -66,7 +66,45 @@ namespace NeuralNetwork.NMIST
                 for (int i = 0; i < count; i++)
                 {
                     var imagePixels = new byte[imageSize];
-                    fileStream.Read(imagePixels, 0, imageSize); 
+
+                    if (false)
+                    {
+                        int currentOffset = 0;
+                        imagePixels = new byte[707];
+                        // trim the array for fewer inputs
+                        fileStream.Seek(4, SeekOrigin.Current);
+                        fileStream.Read(imagePixels, currentOffset, 20);
+                        currentOffset += 20;
+                        fileStream.Seek(7, SeekOrigin.Current);
+                        fileStream.Read(imagePixels, currentOffset, 22);
+                        currentOffset += 22;
+                        fileStream.Seek(5, SeekOrigin.Current);
+                        fileStream.Read(imagePixels, currentOffset, 24);
+                        currentOffset += 24;
+                        fileStream.Seek(2, SeekOrigin.Current);
+                        for (int j = 0; j < 22; j++)
+                        {
+                            fileStream.Seek(1, SeekOrigin.Current);
+                            fileStream.Read(imagePixels, currentOffset, 26);
+                            currentOffset += 26;
+                            fileStream.Seek(1, SeekOrigin.Current);
+                        }
+                        fileStream.Seek(2, SeekOrigin.Current);
+                        fileStream.Read(imagePixels, currentOffset, 24);
+                        currentOffset += 24;
+                        fileStream.Seek(5, SeekOrigin.Current);
+                        fileStream.Read(imagePixels, currentOffset, 22);
+                        currentOffset += 22;
+                        fileStream.Seek(7, SeekOrigin.Current);
+                        fileStream.Read(imagePixels, currentOffset, 20);
+                        currentOffset += 20;
+                        fileStream.Seek(4, SeekOrigin.Current);
+                    }
+                    else
+                    {
+                        // Read all pixels:
+                        fileStream.Read(imagePixels, 0, imageSize); 
+                    }
 
                     dataSets[i].Values = imagePixels.Select(p => (double)p / 255d).ToArray();
                 }

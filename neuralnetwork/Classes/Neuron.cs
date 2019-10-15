@@ -1,4 +1,5 @@
 ﻿using NeuralNetwork.Tools;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,18 +10,16 @@ namespace NeuralNetwork.Classes
 {
     public class Neuron
     {
-        //public Guid ID;
         public int Index { get; set; } // For multi-threading purposes
         public double Bias { get; set; }
         public double BiasDelta { get; set; }
         public double Gradient { get; set; }
         public double Value { get; set; }
-        List<Synapse> Inputs { get; set; }
-        List<Synapse> Outputs { get; set; }
+        public IList<Synapse> Inputs { get; set; }
+        public IList<Synapse> Outputs { get; set; }
 
         public Neuron()
         {
-            //ID = Guid.NewGuid();
             Inputs = new List<Synapse>();
             Outputs = new List<Synapse>();
             Bias = Network.GetRandom();
@@ -36,7 +35,6 @@ namespace NeuralNetwork.Classes
             }
         }
 
-        public bool wasDropped = false;
         public virtual double CalculateValue(bool dropOut)
         {
             //if(dropOut && Extensions.rng.NextDouble() < 0.2d)
@@ -46,8 +44,12 @@ namespace NeuralNetwork.Classes
             //}
             //wasDropped = false;
 
-            //Value = (Inputs.Sum(a => a.Weight * a.Input.Value) + Bias).ReLU();
-            Value = (Inputs.Sum(a => a.Weight * a.Input.Value) + Bias).Sigmoid(); 
+            //Value = (Inputs.Sum(a => a.Weight * a.Input.Value) + Bias).ReLU((double)Inputs.Count());
+
+            Value = (Inputs.Sum(a => a.Weight * a.Input.Value) + Bias).Sigmoid(Inputs.Count()); 
+
+            //Value = Inputs.Select(s => s.Weight * s.Input.Value).ToList().SoftArgMax();
+
             return Value;
         }
 
@@ -66,10 +68,6 @@ namespace NeuralNetwork.Classes
 
         public void UpdateWeights(double learnRate, double momentum)
         {
-            if(wasDropped)
-            {
-                return;
-            }
             var prevDelta = BiasDelta;
             BiasDelta = learnRate * Gradient;
             Bias += BiasDelta + momentum * prevDelta;

@@ -33,6 +33,9 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Newtonsoft.Json, Version=12.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.12.0.2\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Drawing" />
@@ -49,13 +52,15 @@
     <Compile Include="Classes\Network.cs" />
     <Compile Include="Classes\Neuron.cs" />
     <Compile Include="Classes\Synapse.cs" />
-    <Compile Include="NMIST\NMIST_Loader.cs" />
+    <Compile Include="DataSets\IDataLoader.cs" />
+    <Compile Include="DataSets\NMIST_Loader.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Tools\Extensions.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+    <None Include="packages.config" />
     <None Include="test-images.data">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

@@ -1,4 +1,5 @@
 ﻿using NeuralNetwork.Tools;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,49 +15,37 @@ namespace NeuralNetwork.Classes
         public List<Neuron> InputLayer { get; set; }
         public List<List<Neuron>> HiddenLayers { get; set; }
         public List<Neuron> OutputLayer { get; set; }
+        [JsonIgnore]
         public int NeuronCount{ get { return InputLayer.Count + HiddenLayers.Sum(l=>l.Count) + OutputLayer.Count; }}
+        [JsonIgnore]
         public int SynapseCount
         {
             get
             {
-                int count = 0;
-                
-                for(int i = 0; i < HiddenLayers.Count; i++)
-                {
-                    if (i == 0)
-                    {
-                        count += InputLayer.Count * HiddenLayers[0].Count;
-                    }
-                    else
-                    {
-                        count += HiddenLayers[i].Count * HiddenLayers[i - 1].Count;
-                    }
-
-                    if(i == HiddenLayers.Count - 1)
-                    {
-                        count +=  HiddenLayers[i].Count * OutputLayer.Count;
-                    }
-                }
-
-                return count;
+                return InputLayer.Sum(n => n.Outputs.Count())
+                + HiddenLayers.Sum(h => h.Sum(n => n.Outputs.Count()));
             }
         }
-        public string Config { get
+        [JsonIgnore]
+        public string Config
         {
+            get
+            {
                 return InputLayer.Count + "-" + string.Join("-", HiddenLayers.Select(l => l.Count.ToString()).ToArray())
-                        + "-" + OutputLayer.Count + " " + NeuronCount + " total neurons, " + SynapseCount.ToString("#,#") + " total synapses, " + Environment.NewLine
-                        + LearnRate + " learn rate, " + Momentum + " momentum.";
-        } }
+                    + "-" + OutputLayer.Count + " " + NeuronCount + " total neurons, " + SynapseCount.ToString("#,#") + " total synapses, " + Environment.NewLine
+                    + LearnRate + " learn rate, " + Momentum + " momentum.";
+            }
+        }
 
-        private static readonly Random Random = new Random(DateTime.Now.Millisecond * 7321);
+        public static readonly Random Random = new Random(DateTime.Now.Millisecond * 7321);
 
         public Network()
         {
-            LearnRate = 0;
-            Momentum = 0;
-            InputLayer = new List<Neuron>();
-            HiddenLayers = new List<List<Neuron>>();
-            OutputLayer = new List<Neuron>();
+            //LearnRate = 0;
+            //Momentum = 0;
+            //InputLayer = new List<Neuron>();
+            //HiddenLayers = new List<List<Neuron>>();
+            //OutputLayer = new List<Neuron>();
         }
 
         public Network(int inputSize, int[] hiddenSizes, int outputSize, double? learnRate = null, double? momentum = null)
@@ -91,7 +80,7 @@ namespace NeuralNetwork.Classes
         }
 
         #region -- Training --
-        public void Train(List<DataSet> dataSets, List<DataSet> testSet, int numEpochs)
+        public void Train(IList<DataSet> dataSets, IList<DataSet> testSet, int numEpochs)
         {
             for (var i = 0; i < numEpochs; i++)
             {
@@ -108,20 +97,39 @@ namespace NeuralNetwork.Classes
                     Console.Write(errors.Count().ToString("#,###,###") + "\t " + errors.Average().ToString("0.000000") + "      ");
                 }
                 Console.SetCursorPosition(0, Console.CursorTop-1);
+
                 var avg = errors.Average();
-                var max = errors.Max();
-                var min = errors.Min();
+                //var max = errors.Max();
+                //var min = errors.Min();
                 var med = errors.Median();
+                //Console.WriteLine(Environment.NewLine +
+                //    i + " mean: " + avg.ToString("0.000000") + "  median: " + med.ToString("0.000000") + "  min: " + min.ToString("0.000000") + "  max: " + max.ToString("0.000000")
+                //    + "  " + DateTime.Now.ToString("H:mm:ss"));
                 Console.WriteLine(Environment.NewLine +
-                    i + " mean: " + avg.ToString("0.000000") + "  median: " + med.ToString("0.000000") + "  min: " + min.ToString("0.000000") + "  max: " + max.ToString("0.000000")
+                    i + " mean: " + avg.ToString("0.000000") + "  median: " + med.ToString("0.000000")
                     + "  " + DateTime.Now.ToString("H:mm:ss"));
 
                 Console.WriteLine("Failure Rate: " + Fitness_FailureRate(testSet).ToString("0.0000%") + "\t   ");
 
-                Console.WriteLine("Min x: " + Extensions.MinX);
-                Console.WriteLine("Max x: " + Extensions.MaxX);
+                // Check for synapses with near zero weights
+                int deadSynapseCount = 0;
+                /*
+                var allSynapses = InputLayer.SelectMany(n => n.Outputs)
+                    .Union(HiddenLayers.SelectMany(h => h.SelectMany(n => n.Outputs)))
+                    .ToArray();
 
-                //Console.Beep(735, 450);
+                foreach (var s in allSynapses)
+                {
+                    if(Math.Abs(s.Weight) <= 0.0001d)
+                    {
+                        s.Input.Outputs.Remove(s);
+                        s.Output.Inputs.Remove(s);
+                        deadSynapseCount++;
+                    }
+                }
+
+                Console.WriteLine(deadSynapseCount + " near-zero synapses removed");
+                */
             }
         }
 
@@ -150,18 +158,34 @@ namespace NeuralNetwork.Classes
 
         private void ForwardPropagate(bool dropOut, params double[] inputs)
         {
-            //InputLayer.ForEach(a => a.Value = inputs[a.Index]);
-            Parallel.ForEach(InputLayer, (a) =>
+            bool parallel = false;
+
+            if (parallel)
             {
-                a.Value = inputs[a.Index];
-            });
-            //HiddenLayers.ForEach(a => a.ForEach(b => b.CalculateValue(dropOut)));
-            HiddenLayers.ForEach(a =>
-                Parallel.ForEach(a, (b) =>
+                Parallel.ForEach(InputLayer, (a) =>
                 {
-                    b.CalculateValue(dropOut);
-                })
-            );
+                    a.Value = inputs[a.Index];
+                });
+            }
+            else
+            {
+                InputLayer.ForEach(a => a.Value = inputs[a.Index]);
+            }
+
+            if (parallel)
+            {
+                HiddenLayers.ForEach(a =>
+                    Parallel.ForEach(a, (b) =>
+                    {
+                        b.CalculateValue(dropOut);
+                    })
+                );
+            }
+            else
+            {
+                HiddenLayers.ForEach(a => a.ForEach(b => b.CalculateValue(dropOut)));
+            }
+
             OutputLayer.ForEach(a => a.CalculateValue(false));
         }
 
@@ -227,7 +251,7 @@ namespace NeuralNetwork.Classes
             //return grade;
         }
 
-        public double Fitness_FailureRate(List<DataSet> testDataSets)
+        public double Fitness_FailureRate(IList<DataSet> testDataSets)
         {
             var fails = 0;
             var counter = 1;
@@ -251,6 +275,20 @@ namespace NeuralNetwork.Classes
         public static double GetRandom()
         {
             return 2 * Random.NextDouble() - 1;
+        }
+
+        public string Serialize(bool indent = false)
+        {
+            return JsonConvert.SerializeObject(
+                this,
+                indent ? Formatting.Indented : Formatting.None,
+                new JsonSerializerSettings { PreserveReferencesHandling = PreserveReferencesHandling.Objects }
+            );
+        }
+
+        public static Network FromJson(string json)
+        {
+            return JsonConvert.DeserializeObject<Network>(json);
         }
     }
 }

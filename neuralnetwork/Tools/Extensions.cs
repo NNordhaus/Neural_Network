@@ -1,4 +1,5 @@
-﻿using System;
+﻿using NeuralNetwork.Classes;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -10,18 +11,65 @@ namespace NeuralNetwork.Tools
     {
         public static double MinX = double.MaxValue;
         public static double MaxX = double.MinValue;
-        public static double Sigmoid(this double x)
+        public static double Sigmoid(this double x, int inputCount)
         {
-            MinX = Math.Min(x, MinX);
-            MaxX = Math.Max(x, MaxX);
-            return x < -40.0 ? 0.0 : x > 40.0 ? 1.0 : 1.0 / (1.0 + Math.Exp(-x));
+            //MinX = Math.Min(x, MinX);
+            //MaxX = Math.Max(x, MaxX);
+
+            double max = (double)inputCount;
+            double min = max * -1.0;
+
+            return x < min ? 0.0 : x > max ? 1.0 : 1.0 / (1.0 + Math.Exp(-x));
         }
 
-        public static double ReLU(this double x)
+        public static double SoftArgMax(this IList<double> values)
         {
-            MinX = Math.Min(x, MinX);
-            MaxX = Math.Max(x, MaxX);
-            return Math.Max(0.0d,Math.Min(1.0000,x));
+            int len = 0;
+            double max = double.NegativeInfinity;
+            foreach (double value in values)
+            {
+                ++len;
+                if (value > max)
+                    max = value;
+            }
+
+            if (len == 0)
+                return -1.0;
+            else if (double.IsNegativeInfinity(max))
+            {
+                return values[Network.Random.Next(len)];
+            }
+
+            double total = values.Sum(value => Math.Exp(value - max));
+
+            // Loop just in case due to roundoff we don't choose anything in first pass -- very unlikely.
+            for (; ; )
+            {
+                double r;
+                r = Network.Random.NextDouble() * total;
+
+                int i = 0;
+                foreach (double value in values)
+                {
+                    r -= Math.Exp(value - max);
+                    if (r <= 0)
+                        return values[i];
+                    ++i;
+                }
+            }
+        }
+
+        public static double ReLU(this double x, double inputCount)
+        {
+            //MinX = Math.Min(x, MinX);
+            //MaxX = Math.Max(x, MaxX);
+            //double max = inputCount;
+            if(x < 0.0d)
+            {
+                return 0.5d * x;
+            }
+            return Math.Min(inputCount, x);
+            //return Math.Max(0.0d,Math.Min(max,x));
         }
 
         public static double Derivative(this double x)

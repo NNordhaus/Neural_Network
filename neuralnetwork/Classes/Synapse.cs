@@ -8,7 +8,6 @@ namespace NeuralNetwork.Classes
 {
     public class Synapse
     {
-        public Guid ID { get; set; }
         public Neuron Input { get; set; }
         public Neuron Output { get; set; }
         public double Weight { get; set; }
@@ -22,7 +21,6 @@ namespace NeuralNetwork.Classes
 
         public Synapse(Neuron input, Neuron output)
         {
-            ID = Guid.NewGuid();
             Input = input;
             Output = output;
             Weight = Network.GetRandom();
